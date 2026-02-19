@@ -38,21 +38,22 @@
       
       <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 shadow-sm relative overflow-hidden">
         <label class="text-sm font-bold text-blue-900 mb-1 flex items-center gap-1">🚚 แผนการเดินรถ (Routing)</label>
-        <p class="text-[10px] text-blue-700 mb-2">อัปเดตข้อมูลจากลิงก์ใหม่ Sheet: <span class="font-bold bg-blue-200 px-1 rounded">เส้นทาง</span></p>
+        <p class="text-[10px] text-blue-700 mb-2">แสดงเส้นทางวิ่งรถและจุดลงสินค้า</p>
         
-        <div class="flex items-center gap-2 mt-1 border-b border-blue-100 pb-2">
+        <div class="flex items-center gap-2 mt-1">
           <label class="inline-flex items-center gap-1 text-sm font-semibold text-gray-800 cursor-pointer">
             <input type="checkbox" id="toggleRoutes" class="rounded accent-blue-600 w-4 h-4" checked />
-            เปิดแสดงเส้นทางวิ่งรถบนแผนที่
+            เปิดแสดงเส้นทางบนแผนที่
           </label>
         </div>
-        
-        <div class="mt-2 text-xs font-semibold text-gray-700">เลือกดูเฉพาะทริปที่ต้องการ:</div>
-        <div id="tripFilterContainer" class="flex gap-2 flex-wrap mt-1">
-            <span class="text-xs text-gray-400">กำลังโหลดรายการทริป...</span>
+
+        <div class="mt-2">
+          <label class="text-[11px] font-bold text-blue-800 mb-1 block">เลือกทริปที่ต้องการดู:</label>
+          <div id="tripFilterWrap" class="relative"></div>
         </div>
-        
-        <div id="routeStatus" class="mt-2 p-2 bg-white rounded border border-blue-100 text-xs">กำลังตรวจสอบข้อมูล...</div>
+
+        <div id="routeStatus" class="mt-2 p-2 bg-white rounded border border-blue-100 text-[10px]">กำลังตรวจสอบข้อมูล...</div>
+        <div id="routeLegend" class="flex gap-1 flex-wrap mt-2"></div>
       </div>
 
       <div class="grid grid-cols-2 gap-2 mt-1">
@@ -62,7 +63,7 @@
         <div class="relative"><label class="text-xs text-gray-600 mb-1 block">สถานะลูกค้า</label><div id="statusFilterWrap" class="relative"></div></div>
 
         <div class="col-span-2 text-xs text-gray-600 mt-2">
-          รัศมี 100 กม. รอบสาขา (เลือกได้หลายสาขา)
+          รัศมี 100 กม. รอบสาขา
           <div class="mt-1 flex flex-wrap gap-2">
             <label class="inline-flex items-center gap-1 cursor-pointer"><input type="checkbox" class="radiusChoice rounded accent-gray-900" value="ST" /><span class="text-xs">ST</span></label>
             <label class="inline-flex items-center gap-1 cursor-pointer"><input type="checkbox" class="radiusChoice rounded accent-gray-900" value="KN" /><span class="text-xs">KN</span></label>
@@ -114,16 +115,13 @@
     };
     const RADIUS_FILTER_KM = 100;
     const RADIUS_COLORS = { ST: { stroke: "#3b82f6", fill: "#3b82f6" }, KN: { stroke: "#22c55e", fill: "#22c55e" }, MUK: { stroke: "#a855f7", fill: "#a855f7" }, WNN: { stroke: "#ef4444", fill: "#ef4444" } };
-    
-    const ROUTE_COLORS = ['#3b82f6', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#ec4899'];
 
     // ==========================================
     // 2. STATE MANAGEMENT & MAP INIT
     // ==========================================
-    let activeFilters = { branch: [], manager: [], truck: [], status: [] };
+    let activeFilters = { branch: [], manager: [], truck: [], status: [], trip: [] };
     let data = { customers: [], leads: [], trucks: [], settings: [], routes: [] };
     let truckColorMap = {};
-    let activeTrips = []; // เก็บ State ว่าติ๊กทริปไหนบ้าง
 
     const map = L.map('map');
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);
@@ -145,7 +143,7 @@
     function norm(v){ return (v==null?'':String(v)).trim(); }
     const normId = (id) => (id || "").toString().trim().toLowerCase();
     const normHex = (c) => { if (!c) return ""; const raw = String(c).trim().replace(/^#/, ""); return /^[0-9A-Fa-f]{6}$/.test(raw) ? "#" + raw.toUpperCase() : ""; };
-    const uniqueSorted = (arr) => [...new Set(arr.filter(Boolean))].sort((a,b)=>a.localeCompare(b,'th'));
+    const uniqueSorted = (arr) => [...new Set(arr.filter(Boolean))].sort((a,b)=>a.toString().localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
 
     async function fetchSheet(sheetName, customSheetId = MAIN_SHEET_ID) {
       const url = `https://docs.google.com/spreadsheets/d/${customSheetId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}&tq=`;
@@ -161,6 +159,17 @@
 
     function getTruckColor(id) { return truckColorMap[normId(id)] || ""; }
     function getOwnerGroup(rawName) { const n = norm(rawName); if(!n) return ""; return ALLOWED_SALES_NAMES.includes(n) ? n : "อื่นๆ"; }
+
+    function mapStatusTH(raw){
+      if(raw==null) return "";
+      const sl = String(raw).trim().toLowerCase();
+      if (sl === 'active' || sl === 'ลูกค้า active') return 'ลูกค้า Active';
+      if (sl === 'risky to lost') return 'เสี่ยงที่จะเป็นลูกค้าหาย';
+      if (sl === 'lost customer') return 'ลูกค้าหาย';
+      if (sl === 'winback/new customer' || sl === 'winback' || sl === 'new customer' || sl === 'new') return 'ลูกค้ากลับมา/ลูกค้าใหม่';
+      if (sl === 'dormant >60' || sl === 'dormant' || sl === 'deep lost' || sl === 'lost >60') return 'หายเกิน 60 วัน';
+      return String(raw).trim();
+    }
 
     // ==========================================
     // 4. MULTI-SELECT LOGIC
@@ -187,6 +196,7 @@
       btn.addEventListener('click', (e) => { e.stopPropagation(); document.querySelectorAll('.ms-dropdown').forEach(d => { if(d !== dropdown) d.classList.remove('show'); }); dropdown.classList.toggle('show'); });
       updateSelected(filterKey, wrapper, btn);
     }
+
     function updateSelected(key, wrapper, btn) {
       const chks = wrapper.querySelectorAll('input[type="checkbox"]:checked');
       activeFilters[key] = Array.from(chks).map(c => c.value);
@@ -197,52 +207,13 @@
     document.addEventListener('click', () => { document.querySelectorAll('.ms-dropdown').forEach(d => d.classList.remove('show')); });
 
     // ==========================================
-    // 5. BULLETPROOF ROUTE PARSING & DRAWING 
+    // 5. DRAW ROUTES WITH TRIP FILTERING
     // ==========================================
-    
-    function updateActiveTrips() {
-        const checkboxes = document.querySelectorAll('#tripFilterContainer input[type="checkbox"]:checked');
-        activeTrips = Array.from(checkboxes).map(cb => cb.value);
-    }
-
-    function setupTripFilters(tripIds) {
-        const container = document.getElementById('tripFilterContainer');
-        container.innerHTML = ''; 
-        
-        if (tripIds.length === 0) {
-            container.innerHTML = '<span class="text-xs text-gray-400">ไม่พบทริปในข้อมูล</span>';
-            return;
-        }
-
-        tripIds.sort((a,b) => parseInt(a) - parseInt(b));
-
-        tripIds.forEach((tripId, index) => {
-            const color = ROUTE_COLORS[index % ROUTE_COLORS.length];
-            const label = document.createElement('label');
-            label.className = "inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded bg-white border shadow-sm text-gray-700 cursor-pointer hover:bg-gray-50";
-            
-            const checkbox = document.createElement('input');
-            checkbox.type = "checkbox";
-            checkbox.value = tripId;
-            checkbox.className = "rounded accent-gray-900";
-            checkbox.checked = true; // Default: ให้เปิดหมดทั้ง 3 ทริป
-            
-            checkbox.addEventListener('change', () => {
-                updateActiveTrips();
-                drawRoutes(); 
-            });
-
-            label.innerHTML = `<div class="w-3 h-3 rounded-full shadow-sm" style="background-color:${color};"></div>ทริป ${tripId}`;
-            label.prepend(checkbox);
-            container.appendChild(label);
-        });
-        
-        updateActiveTrips();
-    }
-
     function drawRoutes() {
         layerRoutes.clearLayers();
+        const legendDiv = document.getElementById('routeLegend');
         const statusDiv = document.getElementById('routeStatus');
+        legendDiv.innerHTML = '';
         
         if (!document.getElementById('toggleRoutes').checked) {
             statusDiv.innerHTML = `<span class="text-gray-500">ปิดการแสดงเส้นทางวิ่ง</span>`;
@@ -255,104 +226,93 @@
         }
 
         let parsedRoutes = [];
+        let mapKeys = { trip: null, seq: null, name: null, lat: null, lng: null, g95: null, b7: null };
+        const objKeys = Object.keys(data.routes[0] || {});
         
-        // กวาดข้อมูลและบังคับดึงชื่อคอลัมน์แบบเป๊ะๆ
+        for (let k of objKeys) {
+            let str = k.toLowerCase();
+            if (str === 'ทริป' || str === 'trip' || k === 'col1') mapKeys.trip = k;
+            else if (str === 'ลำดับ (ตามทริป)' || str.includes('ลำดับ') || k === 'col2') mapKeys.seq = k;
+            else if (str.includes('ชื่อร้าน') || str.includes('สถานที่ลง') || str.includes('name') || k === 'col4') mapKeys.name = k;
+            else if (str === 'latitude' || str === 'lat' || k === 'col7') mapKeys.lat = k;
+            else if (str === 'longitude' || str === 'lon' || str === 'lng' || k === 'col8') mapKeys.lng = k;
+            else if (str.includes('95') || k === 'col9') mapKeys.g95 = k;
+            else if (str.includes('b7') || str.includes('diesel') || k === 'col10') mapKeys.b7 = k;
+        }
+
         data.routes.forEach((row) => {
-            // เจาะจงชื่อ Key ตรงๆ ตามไฟล์ Google Sheets ของคุณ
-            let tripId = row['ทริป'] || row['Trip'] || row['col1'];
-            let seq = row['ลำดับ (ตามทริป)'] || row['ลำดับ'] || row['col2'];
-            let lat = row['Latitude'] || row['lat'] || row['col7'];
-            let lng = row['Longitude'] || row['lng'] || row['col8'];
-            let name = row['ชื่อร้าน'] || row['col4'];
-            let g95 = row['GAS95 (ลิตร)'] || row['GAS95'] || row['col9'];
-            let b7 = row['Diesel B7 (ลิตร)'] || row['Deisel B7'] || row['col10'];
+            let tripId = String(mapKeys.trip ? row[mapKeys.trip] : "").trim();
+            let seq = mapKeys.seq ? row[mapKeys.seq] : 0;
+            let lat = mapKeys.lat ? row[mapKeys.lat] : null;
+            let lng = mapKeys.lng ? row[mapKeys.lng] : null;
+
+            // 🔥 TRIP FILTER: กรองเฉพาะทริปที่เลือก (ถ้าไม่มีการเลือกเลย ให้ถือว่าเลือกทั้งหมด)
+            if (activeFilters.trip.length > 0 && !activeFilters.trip.includes(tripId)) return;
 
             let parsedLat = parseFloat(lat);
             let parsedLng = parseFloat(lng);
-            
-            // ล้างข้อมูลให้สะอาด ป้องกันการเกิดทริปงอก
-            let strTrip = String(tripId).replace(/\.0+$/, '').trim(); 
             let parsedSeq = parseInt(String(seq).replace(/[^\d]/g, '')) || 0;
 
-            if (isFinite(parsedLat) && isFinite(parsedLng) && strTrip !== '' && strTrip !== 'null' && strTrip.toLowerCase() !== 'ทริป' && strTrip !== 'undefined') {
+            if (isFinite(parsedLat) && isFinite(parsedLng) && tripId !== '' && tripId !== 'null' && tripId.toLowerCase() !== 'ทริป') {
                 parsedRoutes.push({
-                    tripId: strTrip,
+                    tripId: tripId,
                     seq: parsedSeq,
                     lat: parsedLat,
                     lng: parsedLng,
-                    name: String(name),
-                    g95: g95 || 0,
-                    b7: b7 || 0
+                    name: String(mapKeys.name ? row[mapKeys.name] : '-'),
+                    g95: row[mapKeys.g95] || 0,
+                    b7: row[mapKeys.b7] || 0
                 });
             }
         });
 
-        // จัดกลุ่มตามทริป
         let trips = {};
         parsedRoutes.forEach(d => {
             if(!trips[d.tripId]) trips[d.tripId] = [];
             trips[d.tripId].push(d);
         });
 
-        const container = document.getElementById('tripFilterContainer');
-        if (container.innerHTML.includes('กำลังโหลด') || container.innerHTML.includes('ไม่พบ')) {
-            setupTripFilters(Object.keys(trips));
-        }
-
-        // กรองเอาเฉพาะทริปที่ถูก "ติ๊กเลือกไว้" เท่านั้น
-        const filteredTripsKeys = Object.keys(trips).filter(tripId => activeTrips.includes(tripId));
-        
-        statusDiv.innerHTML = `<span class="text-emerald-600 font-bold">✅ สำเร็จ! ดึงข้อมูลได้ ${Object.keys(trips).length} ทริป, กำลังแสดง ${filteredTripsKeys.length} ทริป</span>`;
-
-        if (filteredTripsKeys.length === 0) return; // ถ้าไม่เลือกทริปเลย ก็ไม่ต้องวาดต่อ
-
+        const colors = ['#3b82f6', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#ec4899'];
+        let colorIdx = 0;
         const depotLat = 16.435979721332192;
         const depotLng = 104.61597521404217;
 
-        // จุดคลัง MT-51
         L.circleMarker([depotLat, depotLng], {radius: 12, color: '#111827', fillColor: '#fff', fillOpacity: 1, weight: 4})
          .bindTooltip(`<b>📍 คลังจอดรถ (MT-51)</b>`, {className: 'my', permanent: true, direction: 'right'})
          .addTo(layerRoutes);
 
-        Object.keys(trips).forEach((tripId, index) => {
-            // ดึงสีตาม Index ดั้งเดิม (สีจะไม่เปลี่ยนเมื่อปิดทริปอื่น)
-            let color = ROUTE_COLORS[index % ROUTE_COLORS.length];
-            
-            // เช็คว่าผู้ใช้ติ๊กเลือกดูทริปนี้ไหม
-            if (!activeTrips.includes(tripId)) return;
-
+        Object.keys(trips).forEach(tripId => {
+            let color = colors[colorIdx % colors.length];
+            colorIdx++;
             let stops = trips[tripId].sort((a,b) => a.seq - b.seq);
-            let latlngs = [[depotLat, depotLng]]; 
+            let latlngs = [[depotLat, depotLng]];
 
             stops.forEach(stop => {
-                latlngs.push([stop.lat, stop.lng]); 
-
+                latlngs.push([stop.lat, stop.lng]);
                 let icon = L.divIcon({
                     className: 'clear-icon',
-                    html: `<div style="background-color:${color}; color:white; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:11px; border:2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.5); z-index:1000;">${stop.seq}</div>`,
+                    html: `<div style="background-color:${color}; color:white; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:11px; border:2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.5);">${stop.seq}</div>`,
                     iconSize: [24, 24],
                     iconAnchor: [12, 12]
                 });
-
                 L.marker([stop.lat, stop.lng], {icon: icon})
-                 .bindTooltip(`<b>${stop.name}</b><br/>เที่ยวที่: ${tripId} | ลำดับที่: ${stop.seq}<br/>G95: ${stop.g95} | B7: ${stop.b7}`, {className: 'my'})
+                 .bindTooltip(`<b>${stop.name}</b><br/>ทริป: ${tripId} | ลำดับ: ${stop.seq}`, {className: 'my'})
                  .addTo(layerRoutes);
             });
 
-            latlngs.push([depotLat, depotLng]); 
+            latlngs.push([depotLat, depotLng]);
             L.polyline(latlngs, {color: color, weight: 4, opacity: 0.8, dashArray: '8, 8'}).addTo(layerRoutes);
+            legendDiv.insertAdjacentHTML('beforeend', `<div class="flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded bg-white border shadow-sm">
+                <div class="w-2 h-2 rounded-full" style="background-color:${color};"></div> ทริป ${tripId}</div>`);
         });
 
-        // จัดมุมกล้องเฉพาะตอนที่มีการเปลี่ยน Filter
-        if (layerRoutes.getLayers().length > 0) {
-            map.fitBounds(layerRoutes.getBounds(), {padding: [50, 50]});
-        }
+        statusDiv.innerHTML = `<span class="text-emerald-600 font-bold">✅ สำเร็จ! แสดง ${Object.keys(trips).length} ทริป (${parsedRoutes.length} จุดแวะ)</span>`;
     }
 
     document.getElementById('toggleRoutes').addEventListener('change', drawRoutes);
 
     // ==========================================
-    // 6. MAP FILTER & RENDER
+    // 6. RENDER LOGIC
     // ==========================================
     const haversineKm=(a,b,c,d)=>{ const R=6371,toRad=x=>x*Math.PI/180; const dLat=toRad(c-a),dLon=toRad(d-b); const h=Math.sin(dLat/2)**2+Math.cos(toRad(a))*Math.cos(toRad(c))*Math.sin(dLon/2)**2; return 2*R*Math.asin(Math.sqrt(h)); };
     const gmapsUrl = (lat,lng) => `http://googleusercontent.com/maps.google.com/maps?q=${encodeURIComponent(lat+","+lng)}`;
@@ -468,8 +428,14 @@
         createMultiSelect('branchFilterWrap', uniqueSorted([ ...customersData.map(c=>c.branch), ...leads.map(l=>l.branch) ]), 'branch');
         createMultiSelect('managerFilterWrap', [...ALLOWED_SALES_NAMES, "อื่นๆ"], 'manager');
         createMultiSelect('truckFilterWrap', uniqueSorted(trucks.map(t=>t.truck_id)), 'truck');
-        
-        document.getElementById('tripFilterContainer').innerHTML = '<span class="text-xs text-gray-400">กำลังโหลดรายการทริป...</span>';
+        createMultiSelect('statusFilterWrap', [ {value:"ลูกค้า Active",label:"ลูกค้า Active"}, {value:"เสี่ยงที่จะเป็นลูกค้าหาย",label:"เสี่ยงที่จะเป็นลูกค้าหาย"}, {value:"ลูกค้าหาย",label:"ลูกค้าหาย"}, {value:"ลูกค้ากลับมา/ลูกค้าใหม่",label:"Winback / ลูกค้าใหม่"}, {value:"หายเกิน 60 วัน",label:"Dormant > 60 วัน"} ], 'status');
+
+        // 🔥 สร้าง Multi-select สำหรับทริป
+        const allTrips = uniqueSorted(routesRaw.map(r => {
+            const val = r['ทริป'] || r['Trip'] || r['col1'];
+            return (val && val !== 'ทริป' && val !== 'trip') ? String(val).trim() : null;
+        }));
+        createMultiSelect('tripFilterWrap', allTrips, 'trip');
 
         render();
       }catch(err){ showError(err.message||String(err)); }
@@ -481,15 +447,10 @@
     // ==========================================
     document.getElementById('btnRefresh').onclick = loadAndRender;
     document.getElementById('btnReset').onclick = ()=>{
-       activeFilters = { branch: [], manager: [], truck: [], status: [] };
+       activeFilters = { branch: [], manager: [], truck: [], status: [], trip: [] };
        document.querySelectorAll('.ms-item input').forEach(c => c.checked = false);
        document.querySelectorAll('.ms-btn span').forEach(s => { s.textContent = 'เลือกทั้งหมด'; s.classList.add('text-gray-500'); s.classList.remove('text-gray-900'); });
        document.querySelectorAll('.radiusChoice').forEach(ch=>{ ch.checked=false; });
-       
-       // รีเซ็ตการเลือกทริปให้เป็น True ทั้งหมด
-       document.querySelectorAll('#tripFilterContainer input').forEach(c => c.checked = true);
-       if(typeof updateActiveTrips === 'function') updateActiveTrips();
-       
        render();
     };
     ['toggleLeads','toggleNearest'].forEach(id => document.getElementById(id).addEventListener('change',render));
