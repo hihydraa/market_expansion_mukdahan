@@ -258,53 +258,61 @@
         }
 
         let parsedRoutes = [];
-        let mapKeys = { trip: null, seq: null, name: null, lat: null, lng: null, g95: null, b7: null };
-        const sampleKeys = Object.keys(data.routes[0]);
-
-        // 1. ลองหาบรรทัดที่เป็น Header จริงๆ (สแกน 5 บรรทัดแรก เพราะ User บอกว่า Header อยู่ Row 2)
+        
+        // ลองหาบรรทัดที่เป็น header ใน 5 แถวแรก
+        let headerRowIndex = -1;
         for (let i = 0; i < Math.min(5, data.routes.length); i++) {
-            let rowObj = data.routes[i];
-            let rowVals = Object.values(rowObj).map(v => String(v).trim().toLowerCase());
+            let rowVals = Object.values(data.routes[i]).map(v => String(v).trim().toLowerCase());
+            // ตรวจสอบจากชื่อคอลัมน์ที่น่าจะเป็น
+            if ((rowVals.includes('ทริป') || rowVals.includes('trip') || rowVals.some(v => v.includes('ลำดับ'))) &&
+                (rowVals.includes('latitude') || rowVals.includes('lat') || rowVals.some(v => v.includes('lat')))) {
+                headerRowIndex = i;
+                break;
+            }
+        }
+
+        let mapKeys = { trip: null, seq: null, name: null, lat: null, lng: null, g95: null, b7: null };
+
+        if (headerRowIndex !== -1) {
+            // เจอ header อยู่ในข้อมูล (เช่น กรณีที่มี row ขยะแทรก)
+            for (let [k, v] of Object.entries(data.routes[headerRowIndex])) {
+                let str = String(v).trim().toLowerCase();
+                if (str === 'ทริป' || str === 'trip') mapKeys.trip = k;
+                else if (str.includes('ลำดับ')) mapKeys.seq = k;
+                else if (str.includes('ชื่อร้าน') || str.includes('name') || str.includes('ตำแหน่งสถานที่ลง')) mapKeys.name = k;
+                else if (str.includes('lat')) mapKeys.lat = k;
+                else if (str.includes('lon') || str.includes('lng')) mapKeys.lng = k;
+                else if (str.includes('95')) mapKeys.g95 = k;
+                else if (str.includes('b7') || str.includes('diesel')) mapKeys.b7 = k;
+            }
+        } else {
+            // ถ้าไม่เจอ header ในข้อมูล แปลว่า API ดึงเอา header จริงๆ ไปตั้งเป็น Object keys แล้ว (เพราะแก้ไขลบแถวที่รวมออก)
+            const objKeys = Object.keys(data.routes[0]);
             
-            // ตรวจสอบว่าบรรทัดนี้ใช่ Header จริงไหม? (ต้องมีคำว่า ทริป และ lat/latitude)
-            if ((rowVals.includes('ทริป') || rowVals.includes('trip')) && 
-                (rowVals.includes('latitude') || rowVals.includes('lat'))) {
-                
-                // แมปปิ้ง Key ว่าคอลัมน์ชื่อนี้ ตอน API ดึงมา มันซ่อนอยู่ใน Key ชื่ออะไร (เช่น col1, col2)
-                for (let [k, v] of Object.entries(rowObj)) {
-                    let str = String(v).trim().toLowerCase();
-                    if (str === 'ทริป' || str === 'trip') mapKeys.trip = k;
-                    else if (str.includes('ลำดับ')) mapKeys.seq = k;
-                    else if (str.includes('ชื่อร้าน') || str.includes('name')) mapKeys.name = k;
-                    else if (str.includes('lat')) mapKeys.lat = k;
-                    else if (str.includes('lon') || str.includes('lng')) mapKeys.lng = k;
-                    else if (str.includes('95')) mapKeys.g95 = k;
-                    else if (str.includes('b7') || str.includes('diesel')) mapKeys.b7 = k;
-                }
-                break; // เจอ Header ตัวจริงแล้ว หยุดหา
+            // หา key จาก object keys โดยตรง
+            for (let k of objKeys) {
+                let str = k.toLowerCase();
+                if (str === 'ทริป' || str === 'trip' || str.includes('ทริป')) mapKeys.trip = k;
+                else if (str.includes('ลำดับ')) mapKeys.seq = k;
+                else if (str.includes('ชื่อร้าน') || str.includes('name') || str.includes('ตำแหน่งสถานที่ลง')) mapKeys.name = k;
+                else if (str.includes('lat')) mapKeys.lat = k;
+                else if (str.includes('lon') || str.includes('lng')) mapKeys.lng = k;
+                else if (str.includes('95')) mapKeys.g95 = k;
+                else if (str.includes('b7') || str.includes('diesel')) mapKeys.b7 = k;
             }
+            
+            // ถ้ายังไม่เจออีก ใช้ชื่อ default ที่น่าจะเป็นไปได้ (หรือเผื่อว่าได้ col1, col2)
+            if (!mapKeys.trip) mapKeys.trip = objKeys.find(k => k.toLowerCase().includes('trip') || k === 'col1') || 'col1';
+            if (!mapKeys.seq) mapKeys.seq = objKeys.find(k => k.toLowerCase().includes('seq') || k === 'col2') || 'col2';
+            if (!mapKeys.lat) mapKeys.lat = objKeys.find(k => k.toLowerCase().includes('lat') || k === 'col7') || 'col7';
+            if (!mapKeys.lng) mapKeys.lng = objKeys.find(k => k.toLowerCase().includes('lon') || k.toLowerCase().includes('lng') || k === 'col8') || 'col8';
         }
 
-        // 2. Fallback: ถ้าหาในข้อมูลไม่เจอ อาจจะเพราะหัวตารางถูกดึงไปเป็น Object Key ตั้งแต่ต้น (Row 1 ปกติ)
-        if (!mapKeys.trip) {
-            let keysJoin = sampleKeys.join('|').toLowerCase();
-            if (keysJoin.includes('ทริป') || keysJoin.includes('trip')) {
-               mapKeys.trip = sampleKeys.find(k => k.toLowerCase().includes('ทริป') || k.toLowerCase().includes('trip'));
-               mapKeys.seq = sampleKeys.find(k => k.toLowerCase().includes('ลำดับ'));
-               mapKeys.name = sampleKeys.find(k => k.toLowerCase().includes('ชื่อร้าน'));
-               mapKeys.lat = sampleKeys.find(k => k.toLowerCase().includes('lat'));
-               mapKeys.lng = sampleKeys.find(k => k.toLowerCase().includes('lon') || k.toLowerCase().includes('lng'));
-               mapKeys.g95 = sampleKeys.find(k => k.toLowerCase().includes('95'));
-               mapKeys.b7 = sampleKeys.find(k => k.toLowerCase().includes('b7') || k.toLowerCase().includes('diesel'));
-            } else {
-               // ท่าไม้ตายสุดท้าย ล็อคคอลัมน์ตามไฟล์ที่คุณส่งมาเป๊ะๆ
-               mapKeys.trip = 'col1'; mapKeys.seq = 'col2'; mapKeys.name = 'col4';
-               mapKeys.lat = 'col7'; mapKeys.lng = 'col8'; mapKeys.g95 = 'col9'; mapKeys.b7 = 'col10';
-            }
-        }
+        // กวาดข้อมูลพิกัด
+        data.routes.forEach((row, index) => {
+            // ข้ามบรรทัดที่เป็น header หากอยู่ในข้อมูล
+            if (index === headerRowIndex) return;
 
-        // 3. กวาดข้อมูลพิกัด
-        data.routes.forEach(row => {
             let tripId = mapKeys.trip ? row[mapKeys.trip] : null;
             let seq = mapKeys.seq ? row[mapKeys.seq] : 0;
             let lat = mapKeys.lat ? row[mapKeys.lat] : null;
@@ -317,7 +325,6 @@
             let parsedLng = parseFloat(lng);
             let strTrip = String(tripId).trim();
             
-            // ข้ามบรรทัด Header หรือข้อมูลขยะที่ไม่มีพิกัด
             if (isFinite(parsedLat) && isFinite(parsedLng) && strTrip !== '' && strTrip !== 'null' && strTrip.toLowerCase() !== 'ทริป' && strTrip.toLowerCase() !== 'trip') {
                 parsedRoutes.push({
                     tripId: strTrip,
@@ -336,7 +343,7 @@
             return;
         }
 
-        // 4. จัดกลุ่มตามรอบรถ (Trip)
+        // จัดกลุ่มตามรอบรถ (Trip)
         let trips = {};
         parsedRoutes.forEach(d => {
             if(!trips[d.tripId]) trips[d.tripId] = [];
