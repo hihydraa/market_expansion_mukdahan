@@ -57,7 +57,7 @@
         <label class="text-sm font-bold text-blue-900 mb-1 flex items-center gap-1">
           🚚 แผนการเดินรถ (Routing)
         </label>
-        <p class="text-[10px] text-blue-700 mb-2">อัปเดตข้อมูลตรงจาก Sheet: <span class="font-bold bg-blue-200 px-1 rounded">เส้นทาง</span></p>
+        <p class="text-[10px] text-blue-700 mb-2">อัปเดตข้อมูลจากลิงก์ใหม่ Sheet: <span class="font-bold bg-blue-200 px-1 rounded">เส้นทาง</span></p>
         
         <div class="flex items-center gap-2 mt-1">
           <label class="inline-flex items-center gap-1 text-sm font-semibold text-gray-800 cursor-pointer">
@@ -135,7 +135,10 @@
     // ==========================================
     // 1. CONFIGURATION
     // ==========================================
-    const SHEET_ID = "1Vo4d5_bJPzqHjQDABLTcOrPhqx1tUJ3P11W3cRjfmAo";
+    // แยก ID เพื่อให้ดึงข้อมูลลูกค้าจากไฟล์หลัก และดึงเส้นทางจากไฟล์ใหม่
+    const MAIN_SHEET_ID = "1Vo4d5_bJPzqHjQDABLTcOrPhqx1tUJ3P11W3cRjfmAo"; 
+    const ROUTE_SHEET_ID = "1ETi6bXl6GNGiQ0SI3wgVxGf1S0CwIMl_XVj2bbXywvM"; // ลิงก์ใหม่ที่คุณให้มา
+    
     const SHEETS = { customers: "Customers", leads: "leads", trucks: "Trucks", settings: "Settings", routes: "เส้นทาง" }; 
 
     const ALLOWED_SALES_NAMES = ["ชาญชัย (ต้อม)", "ณัฏฐภรณ์ (อ้อม)", "ธีระพันธ์ (จุ่น)", "บุญย์มนัส (คุณฝน)", "ปิยธิดา (อุ้ย)" , "สุภาภิไล (ไก่)"];
@@ -178,8 +181,9 @@
     const normHex = (c) => { if (!c) return ""; const raw = String(c).trim().replace(/^#/, ""); return /^[0-9A-Fa-f]{6}$/.test(raw) ? "#" + raw.toUpperCase() : ""; };
     const uniqueSorted = (arr) => [...new Set(arr.filter(Boolean))].sort((a,b)=>a.localeCompare(b,'th'));
 
-    async function fetchSheet(sheetName) {
-      const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}&tq=`;
+    // เพิ่ม Parameter sheetId เพื่อให้สามารถดึงจากลิงก์ไหนก็ได้
+    async function fetchSheet(sheetName, customSheetId = MAIN_SHEET_ID) {
+      const url = `https://docs.google.com/spreadsheets/d/${customSheetId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}&tq=`;
       const res = await fetch(url, { cache: "no-store" });
       const text = await res.text();
       const jsonStr = text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1);
@@ -253,66 +257,30 @@
         }
 
         if (!data.routes || data.routes.length === 0) {
-            statusDiv.innerHTML = `<span class="text-red-600 font-bold">❌ ไม่พบข้อมูล (ชีทอาจว่างหรือสะกดชื่อชีทผิด)</span>`;
+            statusDiv.innerHTML = `<span class="text-red-600 font-bold">❌ ไม่พบข้อมูล (กำลังดึงจากลิงก์ใหม่ โปรดตรวจสอบชื่อชีท 'เส้นทาง')</span>`;
             return;
         }
 
         let parsedRoutes = [];
-        
-        // ลองหาบรรทัดที่เป็น header ใน 5 แถวแรก
-        let headerRowIndex = -1;
-        for (let i = 0; i < Math.min(5, data.routes.length); i++) {
-            let rowVals = Object.values(data.routes[i]).map(v => String(v).trim().toLowerCase());
-            // ตรวจสอบจากชื่อคอลัมน์ที่น่าจะเป็น
-            if ((rowVals.includes('ทริป') || rowVals.includes('trip') || rowVals.some(v => v.includes('ลำดับ'))) &&
-                (rowVals.includes('latitude') || rowVals.includes('lat') || rowVals.some(v => v.includes('lat')))) {
-                headerRowIndex = i;
-                break;
-            }
-        }
-
         let mapKeys = { trip: null, seq: null, name: null, lat: null, lng: null, g95: null, b7: null };
 
-        if (headerRowIndex !== -1) {
-            // เจอ header อยู่ในข้อมูล (เช่น กรณีที่มี row ขยะแทรก)
-            for (let [k, v] of Object.entries(data.routes[headerRowIndex])) {
-                let str = String(v).trim().toLowerCase();
-                if (str === 'ทริป' || str === 'trip') mapKeys.trip = k;
-                else if (str.includes('ลำดับ')) mapKeys.seq = k;
-                else if (str.includes('ชื่อร้าน') || str.includes('name') || str.includes('ตำแหน่งสถานที่ลง')) mapKeys.name = k;
-                else if (str.includes('lat')) mapKeys.lat = k;
-                else if (str.includes('lon') || str.includes('lng')) mapKeys.lng = k;
-                else if (str.includes('95')) mapKeys.g95 = k;
-                else if (str.includes('b7') || str.includes('diesel')) mapKeys.b7 = k;
-            }
-        } else {
-            // ถ้าไม่เจอ header ในข้อมูล แปลว่า API ดึงเอา header จริงๆ ไปตั้งเป็น Object keys แล้ว (เพราะแก้ไขลบแถวที่รวมออก)
-            const objKeys = Object.keys(data.routes[0]);
-            
-            // หา key จาก object keys โดยตรง
-            for (let k of objKeys) {
-                let str = k.toLowerCase();
-                if (str === 'ทริป' || str === 'trip' || str.includes('ทริป')) mapKeys.trip = k;
-                else if (str.includes('ลำดับ')) mapKeys.seq = k;
-                else if (str.includes('ชื่อร้าน') || str.includes('name') || str.includes('ตำแหน่งสถานที่ลง')) mapKeys.name = k;
-                else if (str.includes('lat')) mapKeys.lat = k;
-                else if (str.includes('lon') || str.includes('lng')) mapKeys.lng = k;
-                else if (str.includes('95')) mapKeys.g95 = k;
-                else if (str.includes('b7') || str.includes('diesel')) mapKeys.b7 = k;
-            }
-            
-            // ถ้ายังไม่เจออีก ใช้ชื่อ default ที่น่าจะเป็นไปได้ (หรือเผื่อว่าได้ col1, col2)
-            if (!mapKeys.trip) mapKeys.trip = objKeys.find(k => k.toLowerCase().includes('trip') || k === 'col1') || 'col1';
-            if (!mapKeys.seq) mapKeys.seq = objKeys.find(k => k.toLowerCase().includes('seq') || k === 'col2') || 'col2';
-            if (!mapKeys.lat) mapKeys.lat = objKeys.find(k => k.toLowerCase().includes('lat') || k === 'col7') || 'col7';
-            if (!mapKeys.lng) mapKeys.lng = objKeys.find(k => k.toLowerCase().includes('lon') || k.toLowerCase().includes('lng') || k === 'col8') || 'col8';
+        // เนื่องจาก Header อยู่ที่ Row 1 แล้ว (ซึ่งจะเป็น Object Keys) เราสามารถอ่านจาก Object Keys ได้เลย
+        const objKeys = Object.keys(data.routes[0]);
+        
+        // กวาดหา Key อัตโนมัติจาก Header
+        for (let k of objKeys) {
+            let str = k.toLowerCase();
+            if (str === 'ทริป' || str === 'trip' || str.includes('ทริป')) mapKeys.trip = k;
+            else if (str.includes('ลำดับ')) mapKeys.seq = k;
+            else if (str.includes('ชื่อร้าน') || str.includes('name') || str.includes('สถานที่ลง')) mapKeys.name = k;
+            else if (str.includes('lat')) mapKeys.lat = k;
+            else if (str.includes('lon') || str.includes('lng')) mapKeys.lng = k;
+            else if (str.includes('95')) mapKeys.g95 = k;
+            else if (str.includes('b7') || str.includes('diesel')) mapKeys.b7 = k;
         }
 
         // กวาดข้อมูลพิกัด
-        data.routes.forEach((row, index) => {
-            // ข้ามบรรทัดที่เป็น header หากอยู่ในข้อมูล
-            if (index === headerRowIndex) return;
-
+        data.routes.forEach((row) => {
             let tripId = mapKeys.trip ? row[mapKeys.trip] : null;
             let seq = mapKeys.seq ? row[mapKeys.seq] : 0;
             let lat = mapKeys.lat ? row[mapKeys.lat] : null;
@@ -325,7 +293,8 @@
             let parsedLng = parseFloat(lng);
             let strTrip = String(tripId).trim();
             
-            if (isFinite(parsedLat) && isFinite(parsedLng) && strTrip !== '' && strTrip !== 'null' && strTrip.toLowerCase() !== 'ทริป' && strTrip.toLowerCase() !== 'trip') {
+            // กรองข้อมูลที่ใช้งานได้: ต้องมีพิกัด, มีเลขทริป
+            if (isFinite(parsedLat) && isFinite(parsedLng) && strTrip !== '' && strTrip !== 'null') {
                 parsedRoutes.push({
                     tripId: strTrip,
                     seq: parseInt(seq) || 0,
@@ -339,7 +308,7 @@
         });
 
         if (parsedRoutes.length === 0) {
-            statusDiv.innerHTML = `<span class="text-orange-600 font-bold">⚠️ หาพิกัด (Lat/Long) ไม่เจอ หรือรูปแบบตารางไม่ถูกต้อง</span>`;
+            statusDiv.innerHTML = `<span class="text-orange-600 font-bold">⚠️ พบข้อมูลแต่หาพิกัด (Lat/Long) ไม่เจอ โปรดตรวจสอบคอลัมน์</span>`;
             return;
         }
 
@@ -359,6 +328,7 @@
         const depotLat = 16.435979721332192;
         const depotLng = 104.61597521404217;
 
+        // วาดหมุดคลัง
         L.circleMarker([depotLat, depotLng], {radius: 12, color: '#111827', fillColor: '#fff', fillOpacity: 1, weight: 4})
          .bindTooltip(`<b>📍 คลังจอดรถ (MT-51)</b>`, {className: 'my', permanent: true, direction: 'right'})
          .addTo(layerRoutes);
@@ -374,6 +344,7 @@
             stops.forEach(stop => {
                 latlngs.push([stop.lat, stop.lng]); // ลากไปหาลูกค้าทีละจุด
 
+                // สร้างหมุดตัวเลข
                 let icon = L.divIcon({
                     className: 'clear-icon',
                     html: `<div style="background-color:${color}; color:white; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:11px; border:2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.5); z-index:1000;">${stop.seq}</div>`,
@@ -381,12 +352,15 @@
                     iconAnchor: [12, 12]
                 });
 
+                // สร้าง Marker
                 L.marker([stop.lat, stop.lng], {icon: icon})
                  .bindTooltip(`<b>${stop.name}</b><br/>เที่ยวที่: ${tripId} | ลำดับส่ง: ${stop.seq}<br/>G95: ${stop.g95} | B7: ${stop.b7}`, {className: 'my'})
                  .addTo(layerRoutes);
             });
 
             latlngs.push([depotLat, depotLng]); // วิ่งกลับคลัง
+            
+            // วาดเส้นประ
             L.polyline(latlngs, {color: color, weight: 4, opacity: 0.8, dashArray: '8, 8'}).addTo(layerRoutes);
 
             // เพิ่ม Legend ด้านข้าง
@@ -506,9 +480,13 @@
         document.getElementById('btnRefresh').textContent = "กำลังโหลด...";
         document.getElementById('routeStatus').innerHTML = "กำลังดึงข้อมูลเส้นทาง...";
         
+        // สังเกตว่าบรรทัดนี้ ส่ง ROUTE_SHEET_ID ให้เฉพาะ SHEETS.routes
         const [settings, customersRaw, leads, trucks, routesRaw] = await Promise.all([
-          fetchSheet(SHEETS.settings), fetchSheet(SHEETS.customers), fetchSheet(SHEETS.leads), fetchSheet(SHEETS.trucks),
-          fetchSheet(SHEETS.routes).catch(e => { console.error("Route Error", e); return []; })
+          fetchSheet(SHEETS.settings), 
+          fetchSheet(SHEETS.customers), 
+          fetchSheet(SHEETS.leads), 
+          fetchSheet(SHEETS.trucks),
+          fetchSheet(SHEETS.routes, ROUTE_SHEET_ID).catch(e => { console.error("Route Error", e); return []; })
         ]);
 
         const customersData = customersRaw.map(c => ({ ...c, _statusTH: mapStatusTH(c.status) }));
