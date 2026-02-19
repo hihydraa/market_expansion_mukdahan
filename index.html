@@ -18,29 +18,29 @@
       padding:6px 8px;
     }
     .badge { padding:2px 8px; border-radius:999px; font-size:12px; font-weight:600; }
-    /* เพิ่มต่อจาก style เดิม */
-.custom-scrollbar::-webkit-scrollbar { width: 4px; }
-.custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
-.custom-scrollbar::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
+    .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
 
-/* Styles สำหรับ Multi Select */
-.ms-btn {
-  width: 100%; text-align: left; background: white; border: 1px solid #d1d5db;
-  border-radius: 0.5rem; padding: 6px 10px; font-size: 0.875rem; 
-  display: flex; justify-content: space-between; align-items: center; cursor: pointer;
-}
-.ms-dropdown {
-  position: absolute; top: 100%; left: 0; right: 0; 
-  background: white; border: 1px solid #e5e7eb; border-radius: 0.5rem;
-  margin-top: 4px; max-height: 200px; overflow-y: auto; z-index: 50;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); display: none;
-}
-.ms-dropdown.show { display: block; }
-.ms-item {
-  display: flex; align-items: center; padding: 6px 10px; cursor: pointer; font-size: 0.8rem;
-}
-.ms-item:hover { background-color: #f3f4f6; }
-.ms-item input { margin-right: 8px; }
+    /* Styles สำหรับ Multi Select */
+    .ms-btn {
+      width: 100%; text-align: left; background: white; border: 1px solid #d1d5db;
+      border-radius: 0.5rem; padding: 6px 10px; font-size: 0.875rem; 
+      display: flex; justify-content: space-between; align-items: center; cursor: pointer;
+    }
+    .ms-dropdown {
+      position: absolute; top: 100%; left: 0; right: 0; 
+      background: white; border: 1px solid #e5e7eb; border-radius: 0.5rem;
+      margin-top: 4px; max-height: 200px; overflow-y: auto; z-index: 50;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); display: none;
+    }
+    .ms-dropdown.show { display: block; }
+    .ms-item { display: flex; align-items: center; padding: 6px 10px; cursor: pointer; font-size: 0.8rem; }
+    .ms-item:hover { background-color: #f3f4f6; }
+    .ms-item input { margin-right: 8px; }
+    
+    /* Styles สำหรับหมุดตัวเลข (Route Sequence) */
+    .clear-icon { background: transparent; border: none; }
     
   </style>
 </head>
@@ -59,22 +59,36 @@
         <p class="text-xs text-gray-500">อัพเดตข้อมูลยอดขายล่าสุด 15 กุมภาพันธ์ 69</p>
       </div>
       <div class="p-4 flex flex-col gap-3">
-        <div class="grid grid-cols-2 gap-2">
+        
+        <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 shadow-sm relative overflow-hidden">
+          <div class="absolute right-0 top-0 w-16 h-16 bg-blue-100 rounded-bl-full opacity-50 pointer-events-none"></div>
+          <label class="text-sm font-bold text-blue-900 mb-1 flex items-center gap-1">
+            🚚 นำเข้าแผนการเดินรถ (Routing)
+          </label>
+          <p class="text-[10px] text-blue-700 mb-2">อัปโหลดไฟล์ "เส้นทาง.csv" เพื่อดูเส้นทางการวิ่ง</p>
+          <input type="file" id="fileRoute" accept=".csv, .xlsx" class="text-xs w-full block text-gray-600 file:mr-2 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer" />
+          
+          <div class="flex items-center gap-2 mt-2">
+            <label class="inline-flex items-center gap-1 text-[11px] font-semibold text-gray-700 cursor-pointer">
+              <input type="checkbox" id="toggleRoutes" class="rounded accent-blue-600" checked />
+              แสดงเส้นทางวิ่ง (Routes)
+            </label>
+          </div>
+          <div id="routeLegend" class="flex gap-1 flex-wrap mt-2"></div>
+        </div>
+        <div class="grid grid-cols-2 gap-2 mt-1">
           <div class="relative">
             <label class="text-xs text-gray-600 mb-1 block">สาขา (Branch)</label>
             <div id="branchFilterWrap" class="relative"></div>
           </div>
-          
           <div class="relative">
             <label class="text-xs text-gray-600 mb-1 block">ผู้รับผิดชอบ</label>
             <div id="managerFilterWrap" class="relative"></div>
           </div>
-
           <div class="relative">
             <label class="text-xs text-gray-600 mb-1 block">รถมิเตอร์ (Truck)</label>
             <div id="truckFilterWrap" class="relative"></div>
           </div>
-
           <div class="relative">
             <label class="text-xs text-gray-600 mb-1 block">สถานะลูกค้า</label>
             <div id="statusFilterWrap" class="relative"></div>
@@ -146,7 +160,7 @@
     <div id="map"></div>
   </div>
 
-<div id="viewDash" class="hidden fixed inset-0 overflow-auto bg-gray-50/50">
+  <div id="viewDash" class="hidden fixed inset-0 overflow-auto bg-gray-50/50">
     <div class="max-w-[1800px] mx-auto px-4 pt-16 pb-12"> <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-3 mb-4">
         <div>
           <div class="text-2xl font-extrabold text-gray-900">CRM Dashboard</div>
@@ -238,7 +252,6 @@
       </div>
 
       <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
-        
         <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-md h-full">
             <div class="flex items-center justify-between mb-4 border-b pb-3">
               <div>
@@ -323,7 +336,6 @@
     </div>
   </div>
 
-
 <script>
     // ==========================================
     // 1. CONFIGURATION & CONSTANTS
@@ -359,25 +371,23 @@
     // ==========================================
     // 2. STATE MANAGEMENT & GLOBALS
     // ==========================================
-    // เก็บค่าที่เลือกจาก Multi-Select (ถ้า Array ว่าง = เลือกทั้งหมด)
     let activeFilters = { branch: [], manager: [], truck: [], status: [] };
     
     let data = { customers: [], leads: [], trucks: [], settings: [] };
     let truckColorMap = {};
 
-    // Global Charts Variables
     let chartTaskStatus, chartLeadStatus, chartTaskContact, chartTaskChannel;
     let chartCustomerStatus, chartTruckRisk, chartTruckEfficiency;
     let chartActualVisits, chartActualSales; 
 
-    // Map & Layers
     const map = L.map('map');
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);
-    const layerCustomers=L.layerGroup().addTo(map),
-          layerLeads=L.layerGroup().addTo(map),
-          layerTrucks=L.layerGroup().addTo(map),
-          layerLines=L.layerGroup().addTo(map),
-          layerRadius=L.layerGroup().addTo(map);
+    const layerCustomers = L.layerGroup().addTo(map),
+          layerLeads = L.layerGroup().addTo(map),
+          layerTrucks = L.layerGroup().addTo(map),
+          layerLines = L.layerGroup().addTo(map),
+          layerRadius = L.layerGroup().addTo(map),
+          layerRoutes = L.featureGroup().addTo(map); // <-- NEW: สำหรับเส้นทางเดินรถ
 
     // ==========================================
     // 3. UTILITY FUNCTIONS
@@ -436,23 +446,20 @@
     }
 
     // ==========================================
-    // 4. MULTI-SELECT LOGIC (NEW)
+    // 4. MULTI-SELECT LOGIC
     // ==========================================
     function createMultiSelect(wrapperId, options, filterKey) {
       const wrapper = document.getElementById(wrapperId);
       if(!wrapper) return;
       wrapper.innerHTML = ''; 
 
-      // 1. Button
       const btn = document.createElement('div');
       btn.className = 'ms-btn';
       btn.innerHTML = `<span class="truncate text-gray-500">เลือกทั้งหมด</span> <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>`;
       
-      // 2. Dropdown
       const dropdown = document.createElement('div');
       dropdown.className = 'ms-dropdown custom-scrollbar';
 
-      // 3. Items
       options.forEach(opt => {
         const val = opt.value || opt;
         const txt = opt.label || opt;
@@ -469,7 +476,7 @@
 
         chk.addEventListener('change', () => {
           updateSelected(filterKey, wrapper, btn);
-          render(); // Re-render Map immediately
+          render(); 
         });
 
         item.appendChild(chk);
@@ -480,10 +487,8 @@
       wrapper.appendChild(btn);
       wrapper.appendChild(dropdown);
 
-      // Toggle Logic
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        // Close others
         document.querySelectorAll('.ms-dropdown').forEach(d => {
           if(d !== dropdown) d.classList.remove('show');
         });
@@ -510,7 +515,6 @@
       }
     }
 
-    // Close dropdowns when clicking outside
     document.addEventListener('click', () => {
       document.querySelectorAll('.ms-dropdown').forEach(d => d.classList.remove('show'));
     });
@@ -582,24 +586,19 @@
     }
 
     function passFilters(item){
-      // 1. Branch
       if(activeFilters.branch.length > 0 && !activeFilters.branch.includes(item.branch || '')) return false;
-      // 2. Manager (Group)
       if(activeFilters.manager.length > 0) {
         const groupName = getOwnerGroup(item.person_incharge || item.saller); 
         if(!activeFilters.manager.includes(groupName)) return false;
       }
-      // 3. Truck
       if(activeFilters.truck.length > 0) {
         const tid = item.truck_id || item.nearest_truck_id || '';
         if(!activeFilters.truck.includes(tid)) return false;
       }
-      // 4. Status
       if(activeFilters.status.length > 0) {
         const itemStatus = item._statusTH || "";
         if(!activeFilters.status.includes(itemStatus)) return false;
       }
-      // 5. Radius
       const selectedBranches = getSelectedRadiusBranches();
       if(selectedBranches.length){
         const lat = parseFloat(item.latitude||item.lat||item.lattitude);
@@ -620,7 +619,6 @@
       sumCustomers.textContent = customers.length;
       sumLeads.textContent = leads.length;
 
-      // ฟังก์ชันช่วยนับจำนวนตามสถานะ
       const count = (st) => customers.filter(c => (c._statusTH||'') === st).length;
 
       document.getElementById('sumActive').textContent = count('ลูกค้า Active');
@@ -642,7 +640,6 @@
         L.circle([c.lat, c.lng], { radius: RADIUS_FILTER_KM * 1000, color: col.stroke, weight: 2, fillColor: col.fill, fillOpacity: 0.10 }).addTo(layerRadius);
       });
 
-      // Render Trucks
       data.trucks.forEach(t=>{
         const lat=+ (t.latitude||t.lat||t.lattitude), lng=+ (t.longitude||t.lng||t.longtitude||t.lon);
         if(!isFinite(lat)||!isFinite(lng)) return;
@@ -655,7 +652,6 @@
       const cust = data.customers.filter(passFilters);
       const leads = (document.getElementById('toggleLeads').checked ? data.leads: []).filter(passFilters);
 
-      // Render Customers
       cust.forEach(c=>{
         const lat=+ (c.latitude||c.lat||c.lattitude), lng=+ (c.longitude||c.lng||c.longtitude||c.lon);
         if(!isFinite(lat)||!isFinite(lng)) return;
@@ -666,7 +662,6 @@
         m.on('click',()=>{ m.bindPopup(popupHtml(c,'customer'), {autoClose:true, closeOnClick:true, className:'my'}).openPopup(); });
       });
 
-      // Render Leads
       const wantNearest = document.getElementById('toggleNearest').checked;
       leads.forEach(l=>{
         const lat=+ (l.latitude||l.lat||l.lattitude), lng=+ (l.longitude||l.lng||l.longtitude||l.lon);
@@ -696,7 +691,11 @@
       layerCustomers.eachLayer(l=>all.push(l.getLatLng()));
       layerLeads.eachLayer(l=>all.push(l.getLatLng()));
       layerTrucks.eachLayer(l=>all.push(l.getLatLng()));
-      if(all.length) map.fitBounds(L.latLngBounds(all),{padding:[60,60]});
+      
+      // อย่าจัด Bounds ถ้าไม่มีหมุด หรือถ้าแสดงแผนที่วิ่งรถอยู่ให้โฟกัสที่เส้นทางรถแทน
+      if(all.length && !document.getElementById('toggleRoutes').checked) {
+          map.fitBounds(L.latLngBounds(all),{padding:[60,60]});
+      }
       setSummary({customers:cust,leads});
     }
 
@@ -717,12 +716,10 @@
         });
         data={settings, customers: customersData, leads, trucks};
 
-        // Map Setup
         const findVal = key => (settings.find(r => (r.key||r.Key||r.setting||'').toString().toUpperCase()===key) || {}).value;
-        const cLat = parseFloat(findVal('CENTER_LAT')||16.43), cLng = parseFloat(findVal('CENTER_LNG')||103.49), zoom = parseInt(findVal('ZOOM')||9);
+        const cLat = parseFloat(findVal('CENTER_LAT')||16.43), cLng = parseFloat(findVal('CENTER_LNG')||104.61), zoom = parseInt(findVal('ZOOM')||9);
         map.setView([cLat,cLng], zoom);
 
-        // CREATE MULTI-SELECTS
         const branchOpts = uniqueSorted([ ...customersData.map(c=>c.branch), ...leads.map(l=>l.branch) ]);
         createMultiSelect('branchFilterWrap', branchOpts, 'branch');
         
@@ -747,7 +744,116 @@
     }
 
     // ==========================================
-    // 6. EXPORT LOGIC
+    // 6. ROUTE UPLOAD & DRAW (NEW)
+    // ==========================================
+    document.getElementById('toggleRoutes').addEventListener('change', function(e) {
+      if(e.target.checked) {
+         map.addLayer(layerRoutes);
+         if(layerRoutes.getLayers().length > 0) map.fitBounds(layerRoutes.getBounds(), {padding: [50, 50]});
+      } else {
+         map.removeLayer(layerRoutes);
+      }
+    });
+
+    document.getElementById('fileRoute').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        try {
+          const fileData = new Uint8Array(evt.target.result);
+          const workbook = XLSX.read(fileData, {type: 'array'});
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          const json = XLSX.utils.sheet_to_json(worksheet);
+          drawRoutes(json);
+        } catch(err) {
+          showError("เกิดข้อผิดพลาดในการอ่านไฟล์: " + err.message);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    });
+
+    function drawRoutes(routeData) {
+        layerRoutes.clearLayers();
+        document.getElementById('routeLegend').innerHTML = '';
+
+        let trips = {};
+        routeData.forEach(d => {
+            let trip = d['ทริป'] || d['Trip'] || '1';
+            if(!trips[trip]) trips[trip] = [];
+            trips[trip].push(d);
+        });
+
+        // สีประจำรอบวิ่ง (สูงสุด 6 เที่ยว)
+        const colors = ['#3b82f6', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#ec4899'];
+        let colorIdx = 0;
+        
+        // พิกัดคลังเริ่มต้น (MT-51)
+        const depotLat = 16.435979721332192;
+        const depotLng = 104.61597521404217;
+
+        // วาดหมุดคลังสินค้า
+        L.circleMarker([depotLat, depotLng], {radius: 10, color: '#111827', fillColor: '#fff', fillOpacity: 1, weight: 4})
+         .bindTooltip(`<b>คลังเริ่ม/สิ้นสุด (MT-51)</b>`, {className: 'my', permanent: true, direction: 'right'})
+         .addTo(layerRoutes);
+
+        Object.keys(trips).forEach(tripId => {
+            let color = colors[colorIdx % colors.length];
+            colorIdx++;
+
+            // เรียงลำดับการส่ง
+            let stops = trips[tripId].sort((a,b) => parseInt(a['ลำดับ (ตามทริป)'] || a['Sequence'] || 0) - parseInt(b['ลำดับ (ตามทริป)'] || b['Sequence'] || 0));
+            let latlngs = [[depotLat, depotLng]];
+
+            stops.forEach(stop => {
+                let lat = parseFloat(stop['Latitude'] || stop['latitude'] || stop['lat'] || stop['Lat']);
+                let lng = parseFloat(stop['Longitude'] || stop['longitude'] || stop['lon'] || stop['Lng']);
+                
+                if(isFinite(lat) && isFinite(lng)) {
+                    latlngs.push([lat, lng]);
+
+                    let seq = stop['ลำดับ (ตามทริป)'] || stop['Sequence'] || '-';
+                    let shopName = stop['ชื่อร้าน'] || stop['Customer Name'] || stop['leads_name'] || '-';
+                    let g95 = stop['GAS95 (ลิตร)'] || stop['GAS95'] || stop['GAS95 (L)'] || 0;
+                    let b7 = stop['Diesel B7 (ลิตร)'] || stop['Deisel B7'] || stop['Diesel B7 (L)'] || 0;
+
+                    let icon = L.divIcon({
+                        className: 'clear-icon',
+                        html: `<div style="background-color:${color}; color:white; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:11px; border:2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.4);">${seq}</div>`,
+                        iconSize: [24, 24],
+                        iconAnchor: [12, 12]
+                    });
+
+                    L.marker([lat, lng], {icon: icon})
+                     .bindTooltip(`<b>${shopName}</b><br/>เที่ยวที่: ${tripId} | ลำดับ: ${seq}<br/>G95: ${g95} | B7: ${b7}`, {className: 'my'})
+                     .addTo(layerRoutes);
+                }
+            });
+
+            latlngs.push([depotLat, depotLng]); // กลับคลัง
+
+            // วาดเส้นประเชื่อมต่อ (Polyline)
+            L.polyline(latlngs, {color: color, weight: 3, opacity: 0.8, dashArray: '6, 6'}).addTo(layerRoutes);
+
+            // สร้าง Legend บอกสี
+            let legendHTML = `<div class="flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded bg-white border shadow-sm">
+                <div class="w-3 h-3 rounded-full" style="background-color:${color};"></div>
+                เที่ยวที่ ${tripId}
+            </div>`;
+            document.getElementById('routeLegend').insertAdjacentHTML('beforeend', legendHTML);
+        });
+
+        // Zoom ให้เห็นเส้นทางทั้งหมด
+        if (layerRoutes.getLayers().length > 0) {
+            document.getElementById('toggleRoutes').checked = true;
+            map.fitBounds(layerRoutes.getBounds(), {padding: [50, 50]});
+        }
+    }
+
+
+    // ==========================================
+    // 7. EXPORT LOGIC
     // ==========================================
     function exportFilteredToExcel(){
       try{
@@ -798,7 +904,7 @@
     }
 
     // ==========================================
-    // 7. TAB & CONTROLS BINDING
+    // 8. TAB & CONTROLS BINDING
     // ==========================================
     const tabMap = document.getElementById('tabMap');
     const tabDash = document.getElementById('tabDash');
@@ -821,7 +927,6 @@
     tabMap.addEventListener('click', ()=>setTab('map'));
     tabDash.addEventListener('click', ()=>setTab('dash'));
 
-    // Controls
     document.getElementById('btnRefresh').onclick = ()=>loadAndRender(true);
     document.getElementById('btnReset').onclick = ()=>{
        activeFilters = { branch: [], manager: [], truck: [], status: [] };
@@ -836,12 +941,11 @@
     document.querySelectorAll('.radiusChoice').forEach(el=>{ el.addEventListener('change', render); });
     document.getElementById('btnExport').onclick = exportFilteredToExcel;
 
-    // Start App
     loadAndRender();
     setInterval(loadAndRender,300000);
 
     // ==========================================
-    // 8. DASHBOARD LOGIC (ORIGINAL PRESERVED)
+    // 9. DASHBOARD LOGIC 
     // ==========================================
     const crmOwnerFilter = document.getElementById('crmOwnerFilter');
     const crmBranchFilter = document.getElementById('crmBranchFilter');
@@ -954,7 +1058,6 @@
         const tasks = rows.filter(r=>!isLeadRow(r));
         const leads = rows.filter(r=>isLeadRow(r));
 
-        // KPI
         const taskCustomers = new Set(tasks.map(r=>norm(r[CRM_COLS.customer])).filter(Boolean));
         const taskDoneCustomers = new Set(tasks.filter(isDoneRow).map(r=>norm(r[CRM_COLS.customer])).filter(Boolean));
         const taskDone = taskDoneCustomers.size;
@@ -974,7 +1077,6 @@
         kpiLeadFollow.textContent = Math.max(0, leadTotal - leadWon).toLocaleString();
         kpiLeadRate.textContent = pct(leadWon, leadTotal);
 
-        // Charts
         const ts = topNwithOther(groupCount(tasks, r=>r[CRM_COLS.workStatus]), 8);
         const ls = topNwithOther(groupCount(leads, r=>r[CRM_COLS.workStatus]), 8);
         destroyChart(chartTaskStatus);
@@ -995,7 +1097,6 @@
           options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false}}, scales:{ x:{ ticks:{ autoSkip:false, maxRotation:40, minRotation:0 } }, y:{ beginAtZero:true } } }
         });
 
-        // Customers Visuals
         let customersForDash = (typeof data!=='undefined' && data && Array.isArray(data.customers)) ? data.customers : [];
         if (branchSel) { customersForDash = customersForDash.filter(c => norm(c.branch) === branchSel); }
         if (ownerSel) { customersForDash = customersForDash.filter(c => getOwnerGroup(c.person_incharge) === ownerSel); }
@@ -1113,7 +1214,6 @@
       });
     }
     
-    // Bind Events for Dashboard
     btnDashRefresh.addEventListener('click', ()=>loadDash(true));
     crmOwnerFilter.addEventListener('change', ()=>loadDash(true));
     crmBranchFilter.addEventListener('change', ()=>loadDash(true));
@@ -1121,11 +1221,5 @@
     dashEndDate?.addEventListener('change', ()=>loadDash(true));
 
 </script>
-
-
-
-
-
-  
 </body>
 </html>
