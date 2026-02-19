@@ -11,34 +11,19 @@
   <style>
     html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; }
     #map { position: fixed; inset: 0; height: 100vh; width: 100vw; z-index: 1; }
-    .leaflet-tooltip.my {
-      background:#111827; color:#fff; border:none;
-      border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,.2);
-      padding:6px 8px;
-    }
+    .leaflet-tooltip.my { background:#111827; color:#fff; border:none; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,.2); padding:6px 8px; }
     .badge { padding:2px 8px; border-radius:999px; font-size:12px; font-weight:600; }
     .custom-scrollbar::-webkit-scrollbar { width: 4px; }
     .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
     .custom-scrollbar::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
 
-    /* Styles สำหรับ Multi Select */
-    .ms-btn {
-      width: 100%; text-align: left; background: white; border: 1px solid #d1d5db;
-      border-radius: 0.5rem; padding: 6px 10px; font-size: 0.875rem; 
-      display: flex; justify-content: space-between; align-items: center; cursor: pointer;
-    }
-    .ms-dropdown {
-      position: absolute; top: 100%; left: 0; right: 0; 
-      background: white; border: 1px solid #e5e7eb; border-radius: 0.5rem;
-      margin-top: 4px; max-height: 200px; overflow-y: auto; z-index: 50;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); display: none;
-    }
+    .ms-btn { width: 100%; text-align: left; background: white; border: 1px solid #d1d5db; border-radius: 0.5rem; padding: 6px 10px; font-size: 0.875rem; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+    .ms-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #e5e7eb; border-radius: 0.5rem; margin-top: 4px; max-height: 200px; overflow-y: auto; z-index: 50; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); display: none; }
     .ms-dropdown.show { display: block; }
     .ms-item { display: flex; align-items: center; padding: 6px 10px; cursor: pointer; font-size: 0.8rem; }
     .ms-item:hover { background-color: #f3f4f6; }
     .ms-item input { margin-right: 8px; }
     
-    /* Styles สำหรับหมุดตัวเลข (Route Sequence) */
     .clear-icon { background: transparent; border: none; }
   </style>
 </head>
@@ -48,15 +33,11 @@
     <div class="p-4 border-b">
       <h1 class="text-xl font-bold text-gray-900">KCP Map For Sales Management</h1>
       <p class="text-xs text-gray-500">เลือกได้หลายตัวเลือก (Multi-Select)</p>
-      <p class="text-xs text-gray-500">อัพเดตข้อมูลยอดขายล่าสุด 15 กุมภาพันธ์ 69</p>
     </div>
     <div class="p-4 flex flex-col gap-3">
       
       <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 shadow-sm relative overflow-hidden">
-        <div class="absolute right-0 top-0 w-16 h-16 bg-blue-100 rounded-bl-full opacity-50 pointer-events-none"></div>
-        <label class="text-sm font-bold text-blue-900 mb-1 flex items-center gap-1">
-          🚚 แผนการเดินรถ (Routing)
-        </label>
+        <label class="text-sm font-bold text-blue-900 mb-1 flex items-center gap-1">🚚 แผนการเดินรถ (Routing)</label>
         <p class="text-[10px] text-blue-700 mb-2">อัปเดตข้อมูลจากลิงก์ใหม่ Sheet: <span class="font-bold bg-blue-200 px-1 rounded">เส้นทาง</span></p>
         
         <div class="flex items-center gap-2 mt-1">
@@ -70,22 +51,10 @@
       </div>
 
       <div class="grid grid-cols-2 gap-2 mt-1">
-        <div class="relative">
-          <label class="text-xs text-gray-600 mb-1 block">สาขา (Branch)</label>
-          <div id="branchFilterWrap" class="relative"></div>
-        </div>
-        <div class="relative">
-          <label class="text-xs text-gray-600 mb-1 block">ผู้รับผิดชอบ</label>
-          <div id="managerFilterWrap" class="relative"></div>
-        </div>
-        <div class="relative">
-          <label class="text-xs text-gray-600 mb-1 block">รถมิเตอร์ (Truck)</label>
-          <div id="truckFilterWrap" class="relative"></div>
-        </div>
-        <div class="relative">
-          <label class="text-xs text-gray-600 mb-1 block">สถานะลูกค้า</label>
-          <div id="statusFilterWrap" class="relative"></div>
-        </div>
+        <div class="relative"><label class="text-xs text-gray-600 mb-1 block">สาขา (Branch)</label><div id="branchFilterWrap" class="relative"></div></div>
+        <div class="relative"><label class="text-xs text-gray-600 mb-1 block">ผู้รับผิดชอบ</label><div id="managerFilterWrap" class="relative"></div></div>
+        <div class="relative"><label class="text-xs text-gray-600 mb-1 block">รถมิเตอร์ (Truck)</label><div id="truckFilterWrap" class="relative"></div></div>
+        <div class="relative"><label class="text-xs text-gray-600 mb-1 block">สถานะลูกค้า</label><div id="statusFilterWrap" class="relative"></div></div>
 
         <div class="col-span-2 text-xs text-gray-600 mt-2">
           รัศมี 100 กม. รอบสาขา (เลือกได้หลายสาขา)
@@ -99,18 +68,13 @@
       </div>
 
       <div class="flex items-center gap-3 mt-1">
-        <label class="inline-flex items-center gap-2 text-sm cursor-pointer">
-          <input id="toggleLeads" type="checkbox" class="rounded accent-gray-900" checked /> แสดง Leads
-        </label>
-        <label class="inline-flex items-center gap-2 text-sm cursor-pointer">
-          <input id="toggleNearest" type="checkbox" class="rounded accent-gray-900" checked /> คำนวณรถใกล้สุด
-        </label>
+        <label class="inline-flex items-center gap-2 text-sm cursor-pointer"><input id="toggleLeads" type="checkbox" class="rounded accent-gray-900" checked /> แสดง Leads</label>
+        <label class="inline-flex items-center gap-2 text-sm cursor-pointer"><input id="toggleNearest" type="checkbox" class="rounded accent-gray-900" checked /> คำนวณรถใกล้สุด</label>
       </div>
 
       <div class="flex gap-2 flex-wrap mt-2">
         <button id="btnRefresh" class="px-3 py-2 text-sm rounded-lg bg-gray-900 text-white hover:bg-gray-800 transition">รีเฟรช</button>
         <button id="btnReset" class="px-3 py-2 text-sm rounded-lg border hover:bg-gray-50 transition">ล้างตัวกรอง</button>
-        <button id="btnExport" class="px-3 py-2 text-sm rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition">Export</button>
       </div>
 
       <div class="rounded-xl border bg-white p-3 mt-2 shadow-sm">
@@ -118,11 +82,6 @@
         <div id="summary" class="text-sm grid grid-cols-2 gap-x-3 gap-y-1">
           <div>Customers:</div><div id="sumCustomers" class="font-semibold">-</div>
           <div>Leads:</div><div id="sumLeads" class="font-semibold">-</div>
-          <div class="text-emerald-600">Active:</div><div id="sumActive" class="font-semibold text-emerald-600">-</div>
-          <div class="text-amber-600">Risky:</div><div id="sumRisky" class="font-semibold text-amber-600">-</div>
-          <div class="text-red-600">Lost:</div><div id="sumLost" class="font-semibold text-red-600">-</div>
-          <div class="text-blue-600">Winback:</div><div id="sumWinback" class="font-semibold text-blue-600">-</div>
-          <div class="text-gray-400">Dormant:</div><div id="sumDormant" class="font-semibold text-gray-400">-</div>
         </div>
         <div id="errorBox" class="text-xs text-red-600 mt-2 hidden"></div>
       </div>
@@ -135,9 +94,8 @@
     // ==========================================
     // 1. CONFIGURATION
     // ==========================================
-    // แยก ID เพื่อให้ดึงข้อมูลลูกค้าจากไฟล์หลัก และดึงเส้นทางจากไฟล์ใหม่
     const MAIN_SHEET_ID = "1Vo4d5_bJPzqHjQDABLTcOrPhqx1tUJ3P11W3cRjfmAo"; 
-    const ROUTE_SHEET_ID = "1ETi6bXl6GNGiQ0SI3wgVxGf1S0CwIMl_XVj2bbXywvM"; // ลิงก์ใหม่ที่คุณให้มา
+    const ROUTE_SHEET_ID = "1ETi6bXl6GNGiQ0SI3wgVxGf1S0CwIMl_XVj2bbXywvM"; 
     
     const SHEETS = { customers: "Customers", leads: "leads", trucks: "Trucks", settings: "Settings", routes: "เส้นทาง" }; 
 
@@ -181,7 +139,6 @@
     const normHex = (c) => { if (!c) return ""; const raw = String(c).trim().replace(/^#/, ""); return /^[0-9A-Fa-f]{6}$/.test(raw) ? "#" + raw.toUpperCase() : ""; };
     const uniqueSorted = (arr) => [...new Set(arr.filter(Boolean))].sort((a,b)=>a.localeCompare(b,'th'));
 
-    // เพิ่ม Parameter sheetId เพื่อให้สามารถดึงจากลิงก์ไหนก็ได้
     async function fetchSheet(sheetName, customSheetId = MAIN_SHEET_ID) {
       const url = `https://docs.google.com/spreadsheets/d/${customSheetId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}&tq=`;
       const res = await fetch(url, { cache: "no-store" });
@@ -243,7 +200,7 @@
     document.addEventListener('click', () => { document.querySelectorAll('.ms-dropdown').forEach(d => d.classList.remove('show')); });
 
     // ==========================================
-    // 5. BULLETPROOF ROUTE PARSING & DRAWING
+    // 5. BULLETPROOF ROUTE PARSING & DRAWING (🔥 แก้ไขการ Lock Column)
     // ==========================================
     function drawRoutes() {
         layerRoutes.clearLayers();
@@ -264,22 +221,24 @@
         let parsedRoutes = [];
         let mapKeys = { trip: null, seq: null, name: null, lat: null, lng: null, g95: null, b7: null };
 
-        // เนื่องจาก Header อยู่ที่ Row 1 แล้ว (ซึ่งจะเป็น Object Keys) เราสามารถอ่านจาก Object Keys ได้เลย
-        const objKeys = Object.keys(data.routes[0]);
+        // หากคุณปรับตารางให้ Header อยู่บรรทัดแรกสุดแล้ว อ่านจากบรรทัดที่ 0 เลย
+        const objKeys = Object.keys(data.routes[0] || {});
         
-        // กวาดหา Key อัตโนมัติจาก Header
+        // 🔥 การแก้ปัญหาแบบชี้เฉพาะเป๊ะๆ เพื่อป้องกันการสลับกันของทริปและลำดับ
         for (let k of objKeys) {
             let str = k.toLowerCase();
-            if (str === 'ทริป' || str === 'trip' || str.includes('ทริป')) mapKeys.trip = k;
-            else if (str.includes('ลำดับ')) mapKeys.seq = k;
-            else if (str.includes('ชื่อร้าน') || str.includes('name') || str.includes('สถานที่ลง')) mapKeys.name = k;
-            else if (str.includes('lat')) mapKeys.lat = k;
-            else if (str.includes('lon') || str.includes('lng')) mapKeys.lng = k;
-            else if (str.includes('95')) mapKeys.g95 = k;
-            else if (str.includes('b7') || str.includes('diesel')) mapKeys.b7 = k;
+            
+            // ใช้ Exact Match หรือการเจาะจงคำที่ปลอดภัยที่สุด
+            if (str === 'ทริป' || str === 'trip' || k === 'col1') mapKeys.trip = k;
+            else if (str === 'ลำดับ (ตามทริป)' || str.includes('ลำดับ') || k === 'col2') mapKeys.seq = k;
+            else if (str.includes('ชื่อร้าน') || str.includes('สถานที่ลง') || str.includes('name') || k === 'col4') mapKeys.name = k;
+            else if (str === 'latitude' || str === 'lat' || k === 'col7') mapKeys.lat = k;
+            else if (str === 'longitude' || str === 'lon' || str === 'lng' || k === 'col8') mapKeys.lng = k;
+            else if (str.includes('95') || k === 'col9') mapKeys.g95 = k;
+            else if (str.includes('b7') || str.includes('diesel') || k === 'col10') mapKeys.b7 = k;
         }
 
-        // กวาดข้อมูลพิกัด
+        // วนลูปอ่านข้อมูล
         data.routes.forEach((row) => {
             let tripId = mapKeys.trip ? row[mapKeys.trip] : null;
             let seq = mapKeys.seq ? row[mapKeys.seq] : 0;
@@ -291,13 +250,16 @@
 
             let parsedLat = parseFloat(lat);
             let parsedLng = parseFloat(lng);
-            let strTrip = String(tripId).trim();
             
-            // กรองข้อมูลที่ใช้งานได้: ต้องมีพิกัด, มีเลขทริป
-            if (isFinite(parsedLat) && isFinite(parsedLng) && strTrip !== '' && strTrip !== 'null') {
+            // ทริป: เอาช่องว่างออก
+            let strTrip = String(tripId).trim(); 
+            // ลำดับ: ดึงมาแต่ตัวเลข ป้องกันการ Error
+            let parsedSeq = parseInt(String(seq).replace(/[^\d]/g, '')) || 0;
+
+            if (isFinite(parsedLat) && isFinite(parsedLng) && strTrip !== '' && strTrip !== 'null' && strTrip.toLowerCase() !== 'ทริป') {
                 parsedRoutes.push({
                     tripId: strTrip,
-                    seq: parseInt(seq) || 0,
+                    seq: parsedSeq,
                     lat: parsedLat,
                     lng: parsedLng,
                     name: String(name),
@@ -319,7 +281,7 @@
             trips[d.tripId].push(d);
         });
 
-        statusDiv.innerHTML = `<span class="text-emerald-600 font-bold">✅ สำเร็จ! พบ ${Object.keys(trips).length} ทริป, รวม ${parsedRoutes.length} จุด</span>`;
+        statusDiv.innerHTML = `<span class="text-emerald-600 font-bold">✅ สำเร็จ! ดึงข้อมูลได้ ${Object.keys(trips).length} ทริป, จำนวนแวะ ${parsedRoutes.length} จุด</span>`;
 
         const colors = ['#3b82f6', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#ec4899'];
         let colorIdx = 0;
@@ -328,7 +290,6 @@
         const depotLat = 16.435979721332192;
         const depotLng = 104.61597521404217;
 
-        // วาดหมุดคลัง
         L.circleMarker([depotLat, depotLng], {radius: 12, color: '#111827', fillColor: '#fff', fillOpacity: 1, weight: 4})
          .bindTooltip(`<b>📍 คลังจอดรถ (MT-51)</b>`, {className: 'my', permanent: true, direction: 'right'})
          .addTo(layerRoutes);
@@ -337,14 +298,13 @@
             let color = colors[colorIdx % colors.length];
             colorIdx++;
 
-            // เรียงลำดับคิวงาน (Sequence)
+            // เรียงลำดับการลากเส้นตามช่อง Sequence (จากน้อยไปมาก)
             let stops = trips[tripId].sort((a,b) => a.seq - b.seq);
-            let latlngs = [[depotLat, depotLng]]; // ลากออกจากคลัง
+            let latlngs = [[depotLat, depotLng]]; // เริ่มจากคลัง
 
             stops.forEach(stop => {
                 latlngs.push([stop.lat, stop.lng]); // ลากไปหาลูกค้าทีละจุด
 
-                // สร้างหมุดตัวเลข
                 let icon = L.divIcon({
                     className: 'clear-icon',
                     html: `<div style="background-color:${color}; color:white; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:11px; border:2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.5); z-index:1000;">${stop.seq}</div>`,
@@ -352,18 +312,14 @@
                     iconAnchor: [12, 12]
                 });
 
-                // สร้าง Marker
                 L.marker([stop.lat, stop.lng], {icon: icon})
-                 .bindTooltip(`<b>${stop.name}</b><br/>เที่ยวที่: ${tripId} | ลำดับส่ง: ${stop.seq}<br/>G95: ${stop.g95} | B7: ${stop.b7}`, {className: 'my'})
+                 .bindTooltip(`<b>${stop.name}</b><br/>เที่ยวที่: ${tripId} | ลำดับที่: ${stop.seq}<br/>G95: ${stop.g95} | B7: ${stop.b7}`, {className: 'my'})
                  .addTo(layerRoutes);
             });
 
             latlngs.push([depotLat, depotLng]); // วิ่งกลับคลัง
-            
-            // วาดเส้นประ
             L.polyline(latlngs, {color: color, weight: 4, opacity: 0.8, dashArray: '8, 8'}).addTo(layerRoutes);
 
-            // เพิ่ม Legend ด้านข้าง
             let legendHTML = `<div class="flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded bg-white border shadow-sm text-gray-700">
                 <div class="w-3 h-3 rounded-full shadow-sm" style="background-color:${color};"></div>
                 เที่ยวที่ ${tripId}
@@ -371,7 +327,6 @@
             legendDiv.insertAdjacentHTML('beforeend', legendHTML);
         });
 
-        // Zoom แผนที่ให้เห็นภาพรวม
         if (layerRoutes.getLayers().length > 0) {
             map.fitBounds(layerRoutes.getBounds(), {padding: [50, 50]});
         }
@@ -464,11 +419,6 @@
 
       document.getElementById('sumCustomers').textContent = cust.length;
       document.getElementById('sumLeads').textContent = leads.length;
-      document.getElementById('sumActive').textContent = cust.filter(c => c._statusTH === 'ลูกค้า Active').length;
-      document.getElementById('sumRisky').textContent  = cust.filter(c => c._statusTH === 'เสี่ยงที่จะเป็นลูกค้าหาย').length;
-      document.getElementById('sumLost').textContent   = cust.filter(c => c._statusTH === 'ลูกค้าหาย').length;
-      document.getElementById('sumWinback').textContent= cust.filter(c => c._statusTH === 'ลูกค้ากลับมา/ลูกค้าใหม่').length;
-      document.getElementById('sumDormant').textContent= cust.filter(c => c._statusTH === 'หายเกิน 60 วัน').length;
     }
 
     // ==========================================
@@ -480,7 +430,6 @@
         document.getElementById('btnRefresh').textContent = "กำลังโหลด...";
         document.getElementById('routeStatus').innerHTML = "กำลังดึงข้อมูลเส้นทาง...";
         
-        // สังเกตว่าบรรทัดนี้ ส่ง ROUTE_SHEET_ID ให้เฉพาะ SHEETS.routes
         const [settings, customersRaw, leads, trucks, routesRaw] = await Promise.all([
           fetchSheet(SHEETS.settings), 
           fetchSheet(SHEETS.customers), 
@@ -523,7 +472,6 @@
     ['toggleLeads','toggleNearest'].forEach(id => document.getElementById(id).addEventListener('change',render));
     document.querySelectorAll('.radiusChoice').forEach(el=>{ el.addEventListener('change', render); });
 
-    // Start App
     loadAndRender();
 
 </script>
